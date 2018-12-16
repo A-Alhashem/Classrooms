@@ -7,12 +7,15 @@ from .forms import ClassroomForm, StudentForm, SignupForm, SigninForm
 from django.contrib.auth import login, authenticate, logout
 
 
+#-------------------STUDENT ATTRIBUTES HERE-----------------------------#
+
+
 def student_delete(request, classroom_id, student_id):
 	classroom = Classroom.objects.get(id=classroom_id)
 	if request.user == classroom.teacher:
 		Student.objects.get(id=student_id).delete()
 		messages.success(request, "Student Successfully Deleted!")
-		return redirect(classroom.get_absolute_url())
+		return redirect('classroom-detail', classroom_id) 
 	else:
 		return redirect('not-allowed')
 
@@ -36,8 +39,37 @@ def student_create(request, classroom_id):
 	return render(request, 'student_create.html', context)
 
 
+def student_update(request, classroom_id, student_id):
+	classroom = Classroom.objects.get(id=classroom_id)
+	student = Student.objects.get(id=student_id)
+	form = StudentForm(instance=student)
+	if request.user == classroom.teacher:
+		if request.method == "POST":
+			form = StudentForm(request.POST, request.FILES or None, instance=student)
+			if form.is_valid():
+				form.save()
+				messages.success(request, "Successfully Edited!")
+				return redirect('classroom-detail', classroom_id)
+			print (form.errors)
+	else:
+		return redirect('not-allowed')
+	context = {
+	"form": form,
+	"classroom": classroom,
+	"student": student,
+	}
+	return render(request, 'student_update.html', context)
+
+
+#---------IF USER IS NOT AUTHORIZED OR SIGNED IN TO MAKE CHANGES-----------------------
+
 def not_allowed(request):
 	return render(request, 'not_allowed.html')
+
+#--------------------------------------------------------------------------------------
+
+
+#------------- CLASSROOM ATTRIBUTES ---------------------------------------------------
 
 def classroom_list(request):
 	classrooms = Classroom.objects.all()
@@ -64,7 +96,9 @@ def classroom_create(request):
 	if request.method == "POST":
 		form = ClassroomForm(request.POST, request.FILES or None)
 		if form.is_valid():
-			form.save()
+			classroom = form.save(commit=False)
+			classroom.teacher = request.user
+			classroom.save()
 			messages.success(request, "Successfully Created!")
 			return redirect('classroom-list')
 		print (form.errors)
@@ -74,16 +108,20 @@ def classroom_create(request):
 	return render(request, 'create_classroom.html', context)
 
 
+
 def classroom_update(request, classroom_id):
 	classroom = Classroom.objects.get(id=classroom_id)
 	form = ClassroomForm(instance=classroom)
-	if request.method == "POST":
-		form = ClassroomForm(request.POST, request.FILES or None, instance=classroom)
-		if form.is_valid():
-			form.save()
-			messages.success(request, "Successfully Edited!")
-			return redirect('classroom-list')
-		print (form.errors)
+	if request.user == classroom.teacher:
+		if request.method == "POST":
+			form = ClassroomForm(request.POST, request.FILES or None, instance=classroom)
+			if form.is_valid():
+				form.save()
+				messages.success(request, "Successfully Edited!")
+				return redirect('classroom-list')
+			print (form.errors)
+	else:
+		return redirect('not-allowed')
 	context = {
 	"form": form,
 	"classroom": classroom,
@@ -92,10 +130,20 @@ def classroom_update(request, classroom_id):
 
 
 def classroom_delete(request, classroom_id):
-	Classroom.objects.get(id=classroom_id).delete()
-	messages.success(request, "Successfully Deleted!")
-	return redirect('classroom-list')
+	classroom = Classroom.objects.get(id=classroom_id)
+	if request.user == classroom.teacher:
+		classroom = classroom.delete()
+		messages.success(request, "Successfully Deleted!")
+		return redirect('classroom-list')
+	else:
+		return redirect('not-allowed')
 
+
+#----------------------------------------------------------------
+
+
+
+#--------BUTTONS SHOWN ON NAVBAR---------------------------------
 
 def signup(request):
 	form = SignupForm()

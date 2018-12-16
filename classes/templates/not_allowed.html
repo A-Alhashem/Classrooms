@@ -5,8 +5,14 @@
 {% block content %}
 <br>
 <div class="jumbotron">
-  <h1 class="display-4">Not Authorised</h1>
+  <h1 class="display-4 text-center">Not Authorised</h1>
   <hr class="my-4">
-  <p>you are not allowed to access this page</p>
+  <p class="text-center">you are not allowed to perform this action</p>
+
+  <div class="button-box col-lg-12 text-center">
+  	<a href="{% url 'classroom-list' %}" role="button" class="btn btn-primary">Go Back</a>
+  </div>
+
 </div>
+
 {% endblock content %}
